@@ -1,37 +1,32 @@
 package tapir.todomvc
+import java.nio.charset.StandardCharsets
+
 import cats.effect.{ExitCode, IO, IOApp}
-import cats.implicits._
 import org.http4s.HttpRoutes
 import org.http4s.server.blaze.BlazeServerBuilder
-import org.http4s.server.middleware.CORS
-import tapir.server.http4s._
+import org.http4s.server.middleware.{CORS, CORSConfig}
 import org.http4s.syntax.kleisli._
 
-case class Todo(title: Option[String], completed: Option[Boolean], url: Option[String], order: Option[Int]) {
-  def patch(that: Todo) =
-    Todo(that.title, that.completed <+> completed, that.url <+> url, that.order <+> order)
-}
+import scala.concurrent.duration._
 
-object Main extends TapirHttp4sTodoMvc[IO] with IOApp {
+object Main extends IOApp {
 
-  val hostName = "127.0.0.1"
-  val port     = 8080
+  private val hostName = "127.0.0.1"
+  private val port     = 8080
+  private val charset  = StandardCharsets.UTF_8
 
-  override def run(
-      args: List[String]
-  ): IO[ExitCode] = {
+  private val endpoints      = new Endpoints(charset)
+  private val implementation = new Implementation[IO](port, hostName, endpoints)
 
-    val _ = args
+  protected val corsConfig =
+    CORSConfig(anyOrigin = true, anyMethod = true, allowCredentials = true, maxAge = 1.day.toSeconds)
 
-    val getRoute: HttpRoutes[IO]    = getEndpoint.toHttp4sRoutes(getTodo _)
-    val deleteRoute: HttpRoutes[IO] = deleteEndpoint.toHttp4sRoutes(deleteTodo _)
-    val postRoute: HttpRoutes[IO]   = postEndpoint.toHttp4sRoutes(postTodo _)
-    val getById: HttpRoutes[IO]     = getTodoEndpoint.toHttp4sRoutes(getTodoById _)
-    val patch: HttpRoutes[IO]       = patchByIdEndpoint.toHttp4sRoutes(patchById _)
+  override def run(args: List[String]): IO[ExitCode] = {
 
-    val combinedRoutes: HttpRoutes[IO] = getById <+> postRoute <+> getRoute <+> deleteRoute <+> patch
+    val _ = args // We don't need these
 
-    val routes = CORS(combinedRoutes, corsConfig)
+    val combinedRoutes: HttpRoutes[IO] = implementation.routes
+    val routes                         = CORS(combinedRoutes, corsConfig)
 
     BlazeServerBuilder[IO]
       .bindHttp(port, hostName)
