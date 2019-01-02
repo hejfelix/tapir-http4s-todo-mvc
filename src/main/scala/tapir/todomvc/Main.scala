@@ -1,6 +1,4 @@
 package tapir.todomvc
-import java.nio.charset.StandardCharsets
-
 import cats.effect.{ExitCode, IO, IOApp}
 import org.http4s.HttpRoutes
 import org.http4s.server.blaze.BlazeServerBuilder
@@ -13,9 +11,8 @@ object Main extends IOApp {
 
   private val hostName = "127.0.0.1"
   private val port     = 8080
-  private val charset  = StandardCharsets.UTF_8
 
-  private val endpoints      = new Endpoints(charset)
+  private val endpoints      = new Endpoints()
   private val implementation = new Implementation[IO](port, hostName, endpoints)
 
   protected val corsConfig =

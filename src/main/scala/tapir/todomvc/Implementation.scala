@@ -23,7 +23,7 @@ class Implementation[F[_]](port: Int, hostName: String, endpoints: Endpoints)(im
         patchByIdEndpoint.toHttp4sRoutes(patchById _)
       )
       .reverse // There's a bug in the tapir-http4s backend that doesnt fail when all path is not consumed
-      .reduceLeft(_ <+> _)
+      .reduceK
 
   private val todos: mutable.Map[UUID, Todo] = mutable.Map[UUID, Todo]()
 

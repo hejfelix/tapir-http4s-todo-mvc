@@ -1,25 +1,19 @@
 package tapir.todomvc
-import java.nio.charset.Charset
 import java.util.UUID
 
-import tapir._
-import tapir.json.circe._
 import io.circe.generic.auto._
 import tapir.GeneralCodec.PlainCodec
+import tapir._
+import tapir.json.circe._
 import cats.implicits._
 import tapir.DecodeResult.{Missing, Value}
-import tapir.MediaType.TextPlain
-import tapir.Schema.SString
-class Endpoints(charset: Charset) {
+class Endpoints {
 
-  implicit private val uuidCodec: PlainCodec[UUID] = new PlainCodec[UUID] {
-    override def encode(t: UUID): String = t.toString
-    override def decode(s: String): DecodeResult[UUID] =
-      Either.catchNonFatal(UUID.fromString(s)).fold(_ => Missing, Value(_))
-    override val rawValueType: RawValueType[String] = StringValueType(charset)
-    override def schema: Schema                     = SString
-    override def mediaType: MediaType.TextPlain     = TextPlain(charset)
-  }
+  implicit private val uuidCodec: PlainCodec[UUID] =
+    GeneralCodec.stringPlainCodecUtf8
+      .plainMap(
+        s => Either.catchNonFatal(UUID.fromString(s)).fold(_ => Missing, Value(_))
+      )(_.toString)
 
   val postEndpoint: Endpoint[Todo, String, Todo] =
     endpoint.post
