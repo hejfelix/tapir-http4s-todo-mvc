@@ -19,7 +19,7 @@ We use `combineK` to turn all the implemented routes into a single route. This i
 
 ## [tapir.todomvc.Main](src/main/scala/tapir/todomvc/Main.scala)
 
-This is an `IOApp` using `Cats Effect` that configures and runs the server using the other classes. Currently, it simply binds to `127.0.0.1:8080`.
+This is an `IOApp` using [`cats-effect`](https://github.com/typelevel/cats-effect) that configures and runs the server using the other classes. Currently, it simply binds to `127.0.0.1:8080`.
 
 # Running the app
 
