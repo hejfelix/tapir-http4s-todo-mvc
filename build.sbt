@@ -1,4 +1,4 @@
-val tapirVersion  = "0.0.6-SNAPSHOT"
+val tapirVersion  = "0.0.6"
 val http4sVersion = "0.20.0-M4"
 
 val scalacLintOptions = Seq(
