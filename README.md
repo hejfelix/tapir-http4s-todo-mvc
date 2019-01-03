@@ -15,6 +15,8 @@ These routes are the final model for building and running the server with endpoi
 
 We use `combineK` to turn all the implemented routes into a single route. This is possible because Cats implements a `SemigroupK` instance for `Kleisli`, and because `type HttpRoutes[F[_]] = Kleisli[OptionT[F, ?], Request[F], Response[F]]`. The combination works as one would expect -- we try the first route, if the materialized `OptionT` value is `None`, we try the next route.
 
+**NOTE:** To me, this is one of the big wins with Tapir -- you don't lose composability, since interpreting the endpoints simply nets you a composable piece of, e.g., `HttpRoutes[F[_]]` that you can continue to compose. 
+
 ## tapir.todomvc.Main
 
 This is an `IOApp` using `Cats Effect` that configures and runs the server using the other classes. Currently, it simply binds to `127.0.0.1:8080`.
