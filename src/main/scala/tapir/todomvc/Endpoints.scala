@@ -7,11 +7,12 @@ import tapir._
 import tapir.json.circe._
 import cats.implicits._
 import tapir.DecodeResult.{Missing, Value}
+
 class Endpoints {
 
   implicit private val uuidCodec: PlainCodec[UUID] =
     GeneralCodec.stringPlainCodecUtf8
-      .plainMap(
+      .codecMap(
         s => Either.catchNonFatal(UUID.fromString(s)).fold(_ => Missing, Value(_))
       )(_.toString)
 
