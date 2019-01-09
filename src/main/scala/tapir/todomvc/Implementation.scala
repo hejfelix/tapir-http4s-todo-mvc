@@ -2,25 +2,25 @@ package tapir.todomvc
 import java.util.UUID
 
 import cats.data.NonEmptyList
-import cats.effect.Sync
+import cats.effect.{ContextShift, Sync}
 import cats.implicits._
 import org.http4s.HttpRoutes
 import tapir.server.http4s._
 
 import scala.collection.mutable
 
-class Implementation[F[_]](port: Int, hostName: String, endpoints: Endpoints)(implicit F: Sync[F]) {
+class Implementation[F[_]: ContextShift](port: Int, hostName: String, endpoints: Endpoints)(implicit F: Sync[F]) {
 
   import endpoints._
 
   def routes: HttpRoutes[F] =
     NonEmptyList
       .of(
-        getEndpoint.toHttp4sRoutes(getTodo _),
-        deleteEndpoint.toHttp4sRoutes(deleteTodo _),
-        postEndpoint.toHttp4sRoutes(postTodo _),
-        getTodoEndpoint.toHttp4sRoutes(getTodoById _),
-        patchByIdEndpoint.toHttp4sRoutes(patchById _)
+        getEndpoint.toRoutes(logic = getTodo _),
+        deleteEndpoint.toRoutes(logic = deleteTodo _),
+        postEndpoint.toRoutes(logic = postTodo _),
+        getTodoEndpoint.toRoutes(logic = getTodoById _),
+        patchByIdEndpoint.toRoutes(logic = patchById _)
       )
       .reverse // There's a bug in the tapir-http4s backend that doesnt fail when all path is not consumed
       .reduceK
