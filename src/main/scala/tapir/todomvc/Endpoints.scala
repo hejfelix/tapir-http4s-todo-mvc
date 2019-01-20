@@ -12,7 +12,7 @@ class Endpoints {
 
   implicit private val uuidCodec: PlainCodec[UUID] =
     GeneralCodec.stringPlainCodecUtf8
-      .codecMap(
+      .mapDecode(
         s => Either.catchNonFatal(UUID.fromString(s)).fold(_ => Missing, Value(_))
       )(_.toString)
 
