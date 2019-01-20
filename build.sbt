@@ -1,4 +1,4 @@
-val tapirVersion  = "0.0.9-SNAPSHOT"
+val tapirVersion  = "0.0.8"
 val http4sVersion = "0.20.0-M4"
 
 lazy val root = project
