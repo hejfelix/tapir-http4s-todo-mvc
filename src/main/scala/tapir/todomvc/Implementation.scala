@@ -22,7 +22,7 @@ class Implementation[F[_]: ContextShift](port: Int, hostName: String, endpoints:
         getTodoEndpoint.toRoutes(logic = getTodoById _),
         patchByIdEndpoint.toRoutes(logic = patchById _)
       )
-      .reverse // There's a bug in the tapir-http4s backend that doesnt fail when all path is not consumed
+//      .reverse // There's a bug in the tapir-http4s backend that doesnt fail when all path is not consumed
       .reduceK
 
   private val todos: mutable.Map[UUID, Todo] = mutable.Map[UUID, Todo]()
@@ -31,9 +31,10 @@ class Implementation[F[_]: ContextShift](port: Int, hostName: String, endpoints:
     val uuid = java.util.UUID.randomUUID()
     val incompleteTodo =
       todo.copy(completed = Option(false), url = Option(s"http://$hostName:${port}/$uuid"))
-    F.delay(
+    F.delay {
+      println(s"Posting TODOS: ${incompleteTodo}")
       println(todos.+=(uuid -> incompleteTodo))
-    ) *> F.delay(Either.right(incompleteTodo))
+    } *> F.delay(Either.right(incompleteTodo))
   }
 
   private def deleteTodo(): F[Either[String, List[Todo]]] =
@@ -48,7 +49,10 @@ class Implementation[F[_]: ContextShift](port: Int, hostName: String, endpoints:
       todos.get(uuid).toRight(s"$uuid not found")
     )
 
-  private def getTodo(): F[Either[String, List[Todo]]] = F.pure(Either.right(todos.values.toList))
+  private def getTodo(): F[Either[String, List[Todo]]] =
+    F.delay {
+      println(s"Getting ALL TODOS!")
+    } *> F.pure(Either.right(todos.values.toList))
 
   private def patchById(uuid: UUID, todo: Todo): F[Either[String, Todo]] =
     F.pure(

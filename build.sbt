@@ -1,5 +1,5 @@
-val tapirVersion  = "0.0.8-SNAPSHOT"
-val http4sVersion = "0.20.0-M4"
+val tapirVersion  = "0.2"
+val http4sVersion = "0.20.0-M6"
 
 lazy val root = project
   .in(file("."))
@@ -15,8 +15,10 @@ lazy val root = project
         "org.http4s"             %% "http4s-dsl"                     % http4sVersion,
         "org.http4s"             %% "http4s-server"                  % http4sVersion,
         "ch.qos.logback"         % "logback-classic"                 % "1.3.0-alpha4",
+        "org.webjars"            % "swagger-ui"                      % "3.20.9",
         "com.softwaremill.tapir" %% "tapir-sttp-client"              % tapirVersion % Test,
-        "com.softwaremill.sttp"  %% "async-http-client-backend-cats" % "1.5.2" % Test,
+        "com.softwaremill.sttp"  %% "async-http-client-backend-cats" % "1.5.11" % Test,
         "org.scalatest"          %% "scalatest"                      % "3.0.5" % Test
-      )
+      ),
+    scalacOptions ++= Seq("-Ypartial-unification")
   )

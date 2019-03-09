@@ -14,6 +14,8 @@ import scala.concurrent.duration._
 import tapir.client.sttp._
 import com.softwaremill.sttp._
 import com.softwaremill.sttp.asynchttpclient.cats.AsyncHttpClientCatsBackend
+import tapir.Endpoint
+import tapir._
 
 class TodoMvcSpec extends org.scalatest.fixture.WordSpec with Matchers {
 
@@ -41,13 +43,15 @@ class TodoMvcSpec extends org.scalatest.fixture.WordSpec with Matchers {
       .withHttpApp(routes.orNotFound)
       .resource
 
-  class SyncRes[T](val code: StatusCode, res: => T) {
-    def body: T = res
+  class SyncRes[T](val code: StatusCode, res: => T, _response: Response[Either[String, T]]) {
+    def body: T                               = res
+    def response: Response[Either[String, T]] = _response
   }
+
   implicit class SendSync[T](req: Request[Either[String, T], Nothing]) {
     def sendSync: SyncRes[T] = {
       val response: Response[Either[String, T]] = req.send().unsafeRunSync()
-      new SyncRes(response.code, response.body.map(_.right.get).right.get)
+      new SyncRes(response.code, response.body.map(_.right.get).right.get, response)
     }
   }
   implicit class TodoId(todo: Todo) {
@@ -57,12 +61,16 @@ class TodoMvcSpec extends org.scalatest.fixture.WordSpec with Matchers {
   val getTodos = endpoints.getEndpoint.toSttpRequest(baseUri).apply()
   val delete   = endpoints.deleteEndpoint.toSttpRequest(baseUri).apply()
 
-  def getTodo(id: UUID): Request[Either[String, Todo], Nothing] =
-    endpoints.getTodoEndpoint.toSttpRequest(baseUri).apply(id)
+  def getTodo(id: UUID): Request[Either[String, Todo], Nothing] = {
+    val endpoint: Endpoint[UUID, String, Todo, Nothing] = endpoints.getTodoEndpoint
+    endpoint.toSttpRequest(baseUri).apply(id)
+  }
+
   def postTodo(todo: Todo): Request[Either[String, Todo], Nothing] =
     endpoints.postEndpoint
       .toSttpRequest(baseUri)
       .apply(todo)
+
   def patchTodo(id: UUID, patch: Todo): Request[Either[String, Todo], Nothing] =
     endpoints.patchByIdEndpoint.toSttpRequest(baseUri).apply(id, patch)
 
@@ -90,8 +98,9 @@ class TodoMvcSpec extends org.scalatest.fixture.WordSpec with Matchers {
       getTodos.sendSync.body should have size 2
     }
     "work with existing todo" in { _ =>
-      val todo       = Todo(Option("Title"), None, None, None)
-      val postedTodo = postTodo(todo).sendSync.body
+      val todo                = Todo(Option("Title"), None, None, None)
+      val sync: SyncRes[Todo] = postTodo(todo).sendSync
+      val postedTodo          = sync.body
       getTodo(postedTodo.id).sendSync.body.title shouldBe todo.title
     }
   }
