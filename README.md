@@ -32,5 +32,5 @@ Place yourself in the root folder and issue `sbt run`. Once the server is up, yo
 
 # Viewing the docs
 
-After running the app, you can visit the documentation by going to http://127.0.0.1/docs. 
-To view the raw `OpenAPI` specification, go to http://127.0.0.1/openapi.yml.
+After running the app, you can visit the documentation by going to http://127.0.0.1:8080/docs. 
+To view the raw `OpenAPI` specification, go to http://127.0.0.1:8080/openapi.yml.
