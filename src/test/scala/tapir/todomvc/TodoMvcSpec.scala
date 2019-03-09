@@ -28,7 +28,7 @@ class TodoMvcSpec extends org.scalatest.fixture.WordSpec with Matchers {
 
   private implicit val catsSttpBackend: SttpBackend[IO, Nothing] = AsyncHttpClientCatsBackend[IO]()
 
-  private val endpoints      = new Endpoints()
+  private val endpoints      = new Endpoints("basepath")
   private val implementation = new Implementation[IO](port, baseUri.host, endpoints)
 
   private val corsConfig =

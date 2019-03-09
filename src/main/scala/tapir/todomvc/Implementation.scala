@@ -22,7 +22,8 @@ class Implementation[F[_]: ContextShift](port: Int, hostName: String, endpoints:
     NonEmptyList
       .of(
         getEndpoint.toRoutes(logic = getTodo _),
-        deleteEndpoint.toRoutes(logic = deleteTodo _),
+        deleteTodoEndpoint.toRoutes(logic = deleteTodo _),
+        deleteEndpoint.toRoutes(logic = deleteTodos _),
         postEndpoint.toRoutes(logic = postTodo _),
         getTodoEndpoint.toRoutes(logic = getTodoById _),
         patchByIdEndpoint.toRoutes(logic = patchById _),
@@ -46,21 +47,26 @@ class Implementation[F[_]: ContextShift](port: Int, hostName: String, endpoints:
   private def postTodo(todo: Todo): F[Either[String, Todo]] = {
     val uuid = java.util.UUID.randomUUID()
     val incompleteTodo =
-      todo.copy(completed = Option(false), url = Option(s"http://$hostName:${port}/$uuid"))
+      todo.copy(completed = Option(false), url = Option(s"http://$hostName:${port}/${endpoints.basePath}/$uuid"))
     F.delay {
-      println(s"Posting TODOS: ${incompleteTodo}")
+      println(s"Posting TODOS: $incompleteTodo")
       println(todos.+=(uuid -> incompleteTodo))
     } *> F.delay(Either.right(incompleteTodo))
   }
 
-  private def deleteTodo(): F[Either[String, List[Todo]]] =
+  private def deleteTodos: F[Either[String, List[Todo]]] =
     F.delay(
       println(todos.clear())
     ) *> F.delay(Either.right(List.empty[Todo]))
 
+  private def deleteTodo(uuid: UUID): F[Either[String, List[Todo]]] =
+    F.delay(
+      println(todos.remove(uuid))
+    ) *> F.delay(Either.right(List.empty[Todo]))
+
   private def getTodoById(uuid: UUID): F[Either[String, Todo]] =
     F.delay(
-      println(s"hashcode: ${uuid}, ${todos.keys}")
+      println(s"hashcode: $uuid, ${todos.keys}")
     ) *> F.delay(
       todos.get(uuid).toRight(s"$uuid not found")
     )

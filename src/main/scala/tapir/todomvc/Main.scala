@@ -15,7 +15,7 @@ object Main extends IOApp {
   private val hostName = "127.0.0.1"
   private val port     = 8080
 
-  private val endpoints      = new Endpoints()
+  private val endpoints      = new Endpoints("todo")
   private val implementation = new Implementation[IO](port, hostName, endpoints)
 
   protected val corsConfig =
