@@ -7,6 +7,9 @@ import tapir._
 import tapir.json.circe._
 import cats.implicits._
 import tapir.DecodeResult.{Missing, Value}
+import tapir.docs.openapi._
+import tapir.openapi.circe.yaml._
+import tapir.openapi.{Info, OpenAPI}
 
 class Endpoints {
 
@@ -16,30 +19,46 @@ class Endpoints {
         s => Either.catchNonFatal(UUID.fromString(s)).fold(_ => Missing, Value(_))
       )(_.toString)
 
-  val postEndpoint: Endpoint[Todo, String, Todo, Nothing] =
+  private lazy val info = Info(
+    "TodoMVC-Backend",
+    "1.0",
+  )
+
+  private def allDocs: OpenAPI =
+    List(
+      deleteEndpoint.toOpenAPI(info),
+      getEndpoint.toOpenAPI(info),
+      getTodoEndpoint.toOpenAPI(info),
+      patchByIdEndpoint.toOpenAPI(info)
+    ).foldLeft(postEndpoint.toOpenAPI(info))((api, api2) =>
+      api2.paths.foldLeft(api)((api, path) => api.addPathItem(path._1, path._2)))
+
+  def openApiYaml: String = allDocs.toYaml
+
+  lazy val postEndpoint: Endpoint[Todo, String, Todo, Nothing] =
     endpoint.post
       .in(jsonBody[Todo])
       .out(jsonBody[Todo])
       .errorOut(stringBody)
 
-  val deleteEndpoint: Endpoint[Unit, String, List[Todo], Nothing] =
+  lazy val deleteEndpoint: Endpoint[Unit, String, List[Todo], Nothing] =
     endpoint.delete
       .out(jsonBody[List[Todo]])
       .errorOut(stringBody)
 
-  val getEndpoint: Endpoint[Unit, String, List[Todo], Nothing] =
+  lazy val getEndpoint: Endpoint[Unit, String, List[Todo], Nothing] =
     endpoint.get
       .in("")
       .out(jsonBody[List[Todo]])
       .errorOut(stringBody)
 
-  val getTodoEndpoint: Endpoint[UUID, String, Todo, Nothing] =
+  lazy val getTodoEndpoint: Endpoint[UUID, String, Todo, Nothing] =
     endpoint.get
       .in(path[UUID]("uuid"))
       .out(jsonBody[Todo])
       .errorOut(stringBody)
 
-  val patchByIdEndpoint: Endpoint[(UUID, Todo), String, Todo, Nothing] =
+  lazy val patchByIdEndpoint: Endpoint[(UUID, Todo), String, Todo, Nothing] =
     endpoint.patch
       .in(path[UUID]("uuid")(uuidCodec))
       .in(jsonBody[Todo])

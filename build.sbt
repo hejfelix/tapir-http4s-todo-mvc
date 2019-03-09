@@ -16,9 +16,10 @@ lazy val root = project
         "org.http4s"             %% "http4s-server"                  % http4sVersion,
         "ch.qos.logback"         % "logback-classic"                 % "1.3.0-alpha4",
         "org.webjars"            % "swagger-ui"                      % "3.20.9",
-        "com.softwaremill.tapir" %% "tapir-sttp-client"              % tapirVersion % Test,
+        "com.softwaremill.tapir" %% "tapir-openapi-docs"             % tapirVersion,
+        "com.softwaremill.tapir" %% "tapir-openapi-circe-yaml"       % tapirVersion,
         "com.softwaremill.sttp"  %% "async-http-client-backend-cats" % "1.5.11" % Test,
+        "com.softwaremill.tapir" %% "tapir-sttp-client"              % tapirVersion % Test,
         "org.scalatest"          %% "scalatest"                      % "3.0.5" % Test
-      ),
-    scalacOptions ++= Seq("-Ypartial-unification")
+      )
   )

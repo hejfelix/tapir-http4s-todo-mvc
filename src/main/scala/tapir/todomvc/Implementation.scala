@@ -2,15 +2,20 @@ package tapir.todomvc
 import java.util.UUID
 
 import cats.data.NonEmptyList
-import cats.effect.{ContextShift, Sync}
+import cats.effect._
 import cats.implicits._
 import org.http4s.HttpRoutes
 import tapir.server.http4s._
+import org.http4s.dsl.Http4sDsl
 
 import scala.collection.mutable
+import org.http4s._
+import org.http4s.headers.Location
 
 class Implementation[F[_]: ContextShift](port: Int, hostName: String, endpoints: Endpoints)(implicit F: Sync[F]) {
 
+  object dsl extends Http4sDsl[F]
+  import dsl._
   import endpoints._
 
   def routes: HttpRoutes[F] =
@@ -20,12 +25,23 @@ class Implementation[F[_]: ContextShift](port: Int, hostName: String, endpoints:
         deleteEndpoint.toRoutes(logic = deleteTodo _),
         postEndpoint.toRoutes(logic = postTodo _),
         getTodoEndpoint.toRoutes(logic = getTodoById _),
-        patchByIdEndpoint.toRoutes(logic = patchById _)
+        patchByIdEndpoint.toRoutes(logic = patchById _),
+        openApiRoute,
+        docsRoute
       )
-//      .reverse // There's a bug in the tapir-http4s backend that doesnt fail when all path is not consumed
       .reduceK
 
   private val todos: mutable.Map[UUID, Todo] = mutable.Map[UUID, Todo]()
+
+  private def docsRoute: HttpRoutes[F] = HttpRoutes.of[F] {
+    case GET -> Root / "docs" =>
+      PermanentRedirect(Location(Uri.uri("/swagger-ui/3.20.9/index.html?url=/openapi.yml#/")))
+  }
+
+  private def openApiRoute: HttpRoutes[F] =
+    HttpRoutes.of[F] {
+      case GET -> Root / "openapi.yml" => Ok(openApiYaml)
+    }
 
   private def postTodo(todo: Todo): F[Either[String, Todo]] = {
     val uuid = java.util.UUID.randomUUID()
