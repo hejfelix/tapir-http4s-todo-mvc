@@ -18,19 +18,20 @@ class Implementation[F[_]: ContextShift](port: Int, hostName: String, endpoints:
   import dsl._
   import endpoints._
 
-  def routes: HttpRoutes[F] =
-    NonEmptyList
+  def routes: HttpRoutes[F] = {
+    val value: NonEmptyList[HttpRoutes[F]] = NonEmptyList
       .of(
-        getEndpoint.toRoutes(logic = getTodo _),
-        deleteTodoEndpoint.toRoutes(logic = deleteTodo _),
-        deleteEndpoint.toRoutes(logic = deleteTodos _),
-        postEndpoint.toRoutes(logic = postTodo _),
-        getTodoEndpoint.toRoutes(logic = getTodoById _),
-        patchByIdEndpoint.toRoutes(logic = patchById _),
+        getEndpoint.toRoutes(logic = _ => getTodo),
+        deleteTodoEndpoint.toRoutes(logic = deleteTodo),
+        deleteEndpoint.toRoutes(logic = _ => deleteTodos),
+        postEndpoint.toRoutes(logic = postTodo),
+        getTodoEndpoint.toRoutes(logic = getTodoById),
+        patchByIdEndpoint.toRoutes(logic = (patchById _).tupled),
         openApiRoute,
         docsRoute
       )
-      .reduceK
+    value.reduceK
+  }
 
   private val todos: mutable.Map[UUID, Todo] = mutable.Map[UUID, Todo]()
 
@@ -71,7 +72,7 @@ class Implementation[F[_]: ContextShift](port: Int, hostName: String, endpoints:
       todos.get(uuid).toRight(s"$uuid not found")
     )
 
-  private def getTodo(): F[Either[String, List[Todo]]] =
+  private def getTodo: F[Either[String, List[Todo]]] =
     F.delay {
       println(s"Getting ALL TODOS!")
     } *> F.pure(Either.right(todos.values.toList))

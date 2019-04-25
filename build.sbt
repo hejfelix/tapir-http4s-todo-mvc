@@ -1,5 +1,5 @@
-val tapirVersion  = "0.2"
-val http4sVersion = "0.20.0-M6"
+val tapirVersion  = "0.6.1"
+val http4sVersion = "0.20.0"
 
 lazy val root = project
   .in(file("."))
@@ -21,5 +21,6 @@ lazy val root = project
         "com.softwaremill.sttp"  %% "async-http-client-backend-cats" % "1.5.11" % Test,
         "com.softwaremill.tapir" %% "tapir-sttp-client"              % tapirVersion % Test,
         "org.scalatest"          %% "scalatest"                      % "3.0.5" % Test
-      )
+      ),
+    scalacOptions --= Seq("-Ywarn-value-discard")
   )
