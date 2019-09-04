@@ -87,7 +87,7 @@ class TodoMvcSpec extends org.scalatest.fixture.WordSpec with Matchers {
     }
     "after DELETE, GET yields empty JSON array" in { _ =>
       delete.sendSync
-      getTodos.sendSync.body should be('empty)
+      getTodos.sendSync.body shouldBe empty
     }
   }
 
@@ -104,6 +104,7 @@ class TodoMvcSpec extends org.scalatest.fixture.WordSpec with Matchers {
       getTodo(postedTodo.id).sendSync.body.title shouldBe todo.title
     }
   }
+
   "Tracking order" should {
     "create a todo with an order field" in { _ =>
       val orderId = Option(1337)
