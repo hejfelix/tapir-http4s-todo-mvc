@@ -1,92 +1,60 @@
 package tapir.todomvc
 import java.util.UUID
 
-import cats.data.NonEmptyList
 import cats.effect._
 import cats.implicits._
-import org.http4s.HttpRoutes
-import tapir.server.http4s._
+import cats.mtl.FunctorRaise
+import cats.mtl.implicits._
 import org.http4s.dsl.Http4sDsl
 
-import scala.collection.mutable
-import org.http4s._
-import org.http4s.headers.Location
-
-class Implementation[F[_]: ContextShift](port: Int, hostName: String, endpoints: Endpoints)(implicit F: Sync[F]) {
+class Implementation[F[_]: ContextShift: TodoStore: Log: IdGen: FunctorRaise[*[_], String]](
+    port: Int,
+    hostName: String,
+    endpoints: Endpoints)(implicit F: Sync[F]) {
 
   object dsl extends Http4sDsl[F]
-  import dsl._
-  import endpoints._
 
-  def routes: HttpRoutes[F] = {
-    val value: NonEmptyList[HttpRoutes[F]] = NonEmptyList
-      .of(
-        getEndpoint.toRoutes(logic = _ => getTodo),
-        deleteTodoEndpoint.toRoutes(logic = deleteTodo),
-        deleteEndpoint.toRoutes(logic = _ => deleteTodos),
-        postEndpoint.toRoutes(logic = postTodo),
-        getTodoEndpoint.toRoutes(logic = getTodoById),
-        patchByIdEndpoint.toRoutes(logic = (patchById _).tupled),
-        openApiRoute,
-        docsRoute
-      )
-    value.reduceK
-  }
+  def postTodo(todo: Todo): F[Todo] =
+    for {
+      id <- IdGen[F].newId
+      incompleteTodo = todo.copy(completed = Option(false),
+                                 url = Option(s"http://$hostName:${port}/${endpoints.basePath}/$id"))
+      _ <- Log[F].info(s"Posting TODO: $incompleteTodo")
+      _ <- TodoStore[F].put(id, incompleteTodo)
+    } yield incompleteTodo
 
-  private val todos: mutable.Map[UUID, Todo] = mutable.Map[UUID, Todo]()
+  def deleteTodos: F[List[Todo]] =
+    for {
+      _ <- Log[F].info("Deleting todos...")
+      _ <- TodoStore[F].truncate()
+    } yield List.empty
 
-  private def docsRoute: HttpRoutes[F] = HttpRoutes.of[F] {
-    case GET -> Root / "docs" =>
-      PermanentRedirect(Location(Uri.uri("/swagger-ui/3.20.9/index.html?url=/openapi.yml#/")))
-  }
+  def deleteTodo(uuid: UUID): F[List[Todo]] =
+    for {
+      _ <- Log[F].info(s"Deleting todo with id: $uuid")
+      _ <- TodoStore[F].delete(uuid)
+    } yield List.empty
 
-  private def openApiRoute: HttpRoutes[F] =
-    HttpRoutes.of[F] {
-      case GET -> Root / "openapi.yml" => Ok(openApiYaml)
-    }
+  def getTodoById(uuid: UUID): F[Todo] =
+    for {
+      _         <- Log[F].info(s"Getting todo, id: $uuid")
+      maybeTodo <- TodoStore[F].get(uuid)
+      todo      <- maybeTodo.fold(s"$uuid not found".raise[F, Todo])(_.pure[F])
+    } yield todo
 
-  private def postTodo(todo: Todo): F[Either[String, Todo]] = {
-    val uuid = java.util.UUID.randomUUID()
-    val incompleteTodo =
-      todo.copy(completed = Option(false), url = Option(s"http://$hostName:${port}/${endpoints.basePath}/$uuid"))
-    F.delay {
-      println(s"Posting TODOS: $incompleteTodo")
-      println(todos.+=(uuid -> incompleteTodo))
-    } *> F.delay(Either.right(incompleteTodo))
-  }
+  def getTodo: F[List[Todo]] =
+    for {
+      _     <- Log[F].info(s"Getting ALL TODOS!")
+      todos <- TodoStore[F].getAll
+    } yield todos
 
-  private def deleteTodos: F[Either[String, List[Todo]]] =
-    F.delay(
-      println(todos.clear())
-    ) *> F.delay(Either.right(List.empty[Todo]))
-
-  private def deleteTodo(uuid: UUID): F[Either[String, List[Todo]]] =
-    F.delay(
-      println(todos.remove(uuid))
-    ) *> F.delay(Either.right(List.empty[Todo]))
-
-  private def getTodoById(uuid: UUID): F[Either[String, Todo]] =
-    F.delay(
-      println(s"hashcode: $uuid, ${todos.keys}")
-    ) *> F.delay(
-      todos.get(uuid).toRight(s"$uuid not found")
-    )
-
-  private def getTodo: F[Either[String, List[Todo]]] =
-    F.delay {
-      println(s"Getting ALL TODOS!")
-    } *> F.pure(Either.right(todos.values.toList))
-
-  private def patchById(uuid: UUID, todo: Todo): F[Either[String, Todo]] =
-    F.pure(
-      println(s"PATCH: ${uuid}, $todo}")
-    ) *> F.delay {
-      todos
-        .get(uuid)
-        .map(_.patch(todo))
-        .flatMap(patched => todos.put(uuid, patched))
-        .flatMap(_ => todos.get(uuid))
-        .toRight(s"$uuid not found")
-    }
+  def patchById(uuid: UUID, patchTodo: Todo): F[Todo] =
+    for {
+      _         <- Log[F].info(s"Patching: $uuid, $patchTodo")
+      maybeTodo <- TodoStore[F].get(uuid)
+      todo      <- maybeTodo.fold(s"No patch with id: $uuid".raise[F, Todo])(_.pure[F])
+      patched = todo.patch(patchTodo)
+      _ <- TodoStore[F].update(uuid, patched)
+    } yield patched
 
 }
