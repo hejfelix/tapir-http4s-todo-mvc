@@ -1,18 +1,14 @@
 package tapir.todomvc
 
-import java.util.UUID
-
-import cats.{~>, ApplicativeError}
 import cats.data.NonEmptyList
 import cats.effect.{ContextShift, Sync}
-import cats.mtl.FunctorRaise
-import org.http4s.{HttpRoutes, HttpService, Uri}
-import tapir.server.http4s.RichHttp4sHttpEndpoint
-import cats.syntax.reducible.catsSyntaxNestedReducible
-import cats.syntax.applicativeError._
 import cats.implicits._
+import cats.syntax.reducible.catsSyntaxNestedReducible
+import cats.{ApplicativeError, ~>}
 import org.http4s.dsl.Http4sDsl
 import org.http4s.headers.Location
+import org.http4s.{HttpRoutes, Uri}
+import tapir.server.http4s.RichHttp4sHttpEndpoint
 object Routing {
 
   def docsRoute[F[_]: Sync](dsl: Http4sDsl[F]): HttpRoutes[F] = {

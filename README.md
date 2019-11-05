@@ -28,7 +28,7 @@ This is an `IOApp` using [`cats-effect`](https://github.com/typelevel/cats-effec
 
 # Running the app
 
-Place yourself in the root folder and issue `sbt run`. Once the server is up, you can go [to this page](https://www.todobackend.com/specs/index.html?http://127.0.0.1:8080/todo/) and run the test suite against your running app. This is possible because `tapir.todomvc.Main` sets up the neccessary `CORS` configuration.
+Place yourself in the root folder and issue `sbt run`. Once the server is up, you can go [to this page](http://www.todobackend.com/specs/index.html?http://127.0.0.1:8080/todo/) and run the test suite against your running app. This is possible because `tapir.todomvc.Main` sets up the neccessary `CORS` configuration.
 
 # Viewing the docs
 

@@ -5,7 +5,7 @@ import cats.data.EitherT
 import cats.effect.concurrent.Ref
 import cats.effect.{ExitCode, IO, IOApp}
 import cats.implicits._
-import cats.{~>, MonadError}
+import cats.~>
 import org.http4s.implicits._
 import org.http4s.server.blaze.BlazeServerBuilder
 import org.http4s.server.middleware.{CORS, CORSConfig}
@@ -30,6 +30,7 @@ object Main extends IOApp {
 
   import cats.mtl._
   import cats.mtl.implicits._
+
   val bla: FunctorRaise[Stack, String] = implicitly[FunctorRaise[Stack, String]]
 
   private val implementationF: EitherT[IO, String, Implementation[Stack]] =
@@ -56,19 +57,19 @@ object Main extends IOApp {
 
   val program: EitherT[IO, String, HttpApp[IO]] = for {
     implementation <- implementationF
-    routes: HttpRoutes[IO]  = Routing.route[Stack, IO](endpoints, implementation, fToG)
-    routing: HttpRoutes[IO] = webjars <+> routes
+    routes  = Routing.route[Stack, IO](endpoints, implementation, fToG)
+    routing = webjars <+> routes
   } yield CORS(routing, corsConfig).orNotFound
 
-  override def run(args: List[String]): IO[ExitCode] = {
-
-    val _ = args // We don't need these
-
-    BlazeServerBuilder[IO]
-      .bindHttp(port, hostName)
-      .withHttpApp(routes.orNotFound)
-      .serve
-      .compile
-      .lastOrError
-  }
+  override def run(args: List[String]): IO[ExitCode] =
+    program.foldF(
+      _ => ExitCode.Error.pure[IO],
+      app =>
+        BlazeServerBuilder[IO]
+          .bindHttp(port, hostName)
+          .withHttpApp(app)
+          .serve
+          .compile
+          .lastOrError
+    )
 }

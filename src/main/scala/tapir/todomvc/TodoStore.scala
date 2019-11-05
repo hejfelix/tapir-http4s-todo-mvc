@@ -3,7 +3,6 @@ package tapir.todomvc
 import java.util.UUID
 
 import cats.Functor
-import cats.effect._
 import cats.effect.concurrent.Ref
 import cats.implicits._
 
@@ -12,8 +11,7 @@ object TodoStore {
 
   implicit def todoStore[F[_]](storeRef: Ref[F, Map[UUID, Todo]])(implicit F: Functor[F]): TodoStore[F] =
     new TodoStore[F] {
-      override def put(id: UUID, todo: Todo): F[UUID] =
-        storeRef.modify(store => (store + (id -> todo), id))
+      override def put(id: UUID, todo: Todo): F[UUID]      = storeRef.modify(store => (store + (id -> todo), id))
       override def update(uuid: UUID, todo: Todo): F[UUID] = put(uuid, todo)
       override def get(uuid: UUID): F[Option[Todo]]        = storeRef.get.map(_.get(uuid))
       override def getAll: F[List[Todo]]                   = storeRef.get.map(_.values.toList)
