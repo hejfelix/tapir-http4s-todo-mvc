@@ -1,21 +1,28 @@
 package tapir.todomvc
 import java.util.UUID
 
+import cats.data.{EitherT, ReaderT}
 import cats.effect._
-import org.http4s.HttpRoutes
+import cats.effect.concurrent.Ref
+import cats.implicits._
+import cats.~>
+import com.softwaremill.sttp._
+import com.softwaremill.sttp.asynchttpclient.cats.AsyncHttpClientCatsBackend
+import org.http4s.{HttpApp, HttpRoutes}
 import org.http4s.server.Server
 import org.http4s.server.blaze.BlazeServerBuilder
 import org.http4s.server.middleware.{CORS, CORSConfig}
-import org.http4s.syntax.kleisli.http4sKleisliResponseSyntax
 import org.scalatest.{Matchers, Outcome}
-
-import scala.concurrent.ExecutionContext
-import scala.concurrent.duration._
-import tapir.client.sttp._
-import com.softwaremill.sttp._
-import com.softwaremill.sttp.asynchttpclient.cats.AsyncHttpClientCatsBackend
 import tapir.Endpoint
-import tapir._
+import tapir.client.sttp._
+import org.http4s.syntax.kleisli._
+import org.http4s.server.staticcontent.WebjarService.Config
+import org.http4s.server.staticcontent.webjarService
+import tapir.todomvc.Main.isAsset
+import cats.mtl.implicits._
+import scala.concurrent.ExecutionContext
+import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.duration._
 
 class TodoMvcSpec extends org.scalatest.fixture.WordSpec with Matchers {
 
@@ -28,19 +35,40 @@ class TodoMvcSpec extends org.scalatest.fixture.WordSpec with Matchers {
 
   private implicit val catsSttpBackend: SttpBackend[IO, Nothing] = AsyncHttpClientCatsBackend[IO]()
 
-  private val endpoints      = new Endpoints("basepath")
-  private val implementation = new Implementation[IO](port, baseUri.host, endpoints)
+  private val basepath  = "basepath"
+  private val endpoints = new Endpoints(basepath)
+
+  val config = TodoConfig(basepath, baseUri.host, port)
+
+  type Stack[T] = ReaderT[EitherT[IO, String, *], TodoConfig, T]
+
+  implicit val idGen: IdGen[Stack] = IdGen.default[Stack]
+
+  private val implementationF: Stack[TodoStore[Stack]] =
+    Ref.of[Stack, Map[UUID, Todo]](Map.empty[UUID, Todo]).map(TodoStore.default[Stack])
 
   private val corsConfig =
     CORSConfig(anyOrigin = true, anyMethod = true, allowCredentials = true, maxAge = 1.day.toSeconds)
 
-  private val combinedRoutes: HttpRoutes[IO] = implementation.routes
-  private val routes                         = CORS(combinedRoutes, corsConfig)
+  val fToG: Stack ~> IO = new (Stack ~> IO) {
+    override def apply[A](fa: Stack[A]): IO[A] =
+      fa.run(config).leftMap(s => new Throwable(s)).rethrowT
+  }
+
+  val webjars: HttpRoutes[IO] = webjarService(Config(blockingExecutionContext = global, filter = isAsset))
+
+  val program: ReaderT[EitherT[IO, String, *], TodoConfig, HttpApp[IO]] = for {
+    implicit0(implementation: TodoStore[Stack]) <- implementationF
+    routes  = Routing.route[Stack, IO](endpoints, fToG)
+    routing = webjars <+> routes
+  } yield CORS(routing, corsConfig).orNotFound
+
+  val app = program.run(config).value.unsafeRunSync().right.get
 
   private def serverResource: Resource[IO, Server[IO]] =
     BlazeServerBuilder[IO]
       .bindHttp(port, baseUri.host)
-      .withHttpApp(routes.orNotFound)
+      .withHttpApp(app)
       .resource
 
   class SyncRes[T](val code: StatusCode, res: => T, _response: Response[Either[String, T]]) {
@@ -58,8 +86,8 @@ class TodoMvcSpec extends org.scalatest.fixture.WordSpec with Matchers {
     def id: UUID = UUID.fromString(todo.url.get.reverse.takeWhile(_ != '/').reverse)
   }
 
-  val getTodos = endpoints.getEndpoint.toSttpRequest(baseUri).apply()
-  val delete   = endpoints.deleteEndpoint.toSttpRequest(baseUri).apply()
+  val getTodos = endpoints.getEndpoint.toSttpRequest(baseUri).apply(())
+  val delete   = endpoints.deleteEndpoint.toSttpRequest(baseUri).apply(())
 
   def getTodo(id: UUID): Request[Either[String, Todo], Nothing] = {
     val endpoint: Endpoint[UUID, String, Todo, Nothing] = endpoints.getTodoEndpoint
@@ -72,7 +100,7 @@ class TodoMvcSpec extends org.scalatest.fixture.WordSpec with Matchers {
       .apply(todo)
 
   def patchTodo(id: UUID, patch: Todo): Request[Either[String, Todo], Nothing] =
-    endpoints.patchByIdEndpoint.toSttpRequest(baseUri).apply(id, patch)
+    Function.untupled(endpoints.patchByIdEndpoint.toSttpRequest(baseUri))(id, patch)
 
   "The API Root" should {
     "responds to GET" in { _ =>

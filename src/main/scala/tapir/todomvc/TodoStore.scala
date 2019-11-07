@@ -9,7 +9,7 @@ import cats.implicits._
 object TodoStore {
   def apply[F[_]: TodoStore]: TodoStore[F] = implicitly[TodoStore[F]]
 
-  implicit def todoStore[F[_]](storeRef: Ref[F, Map[UUID, Todo]])(implicit F: Functor[F]): TodoStore[F] =
+  implicit def default[F[_]](storeRef: Ref[F, Map[UUID, Todo]])(implicit F: Functor[F]): TodoStore[F] =
     new TodoStore[F] {
       override def put(id: UUID, todo: Todo): F[UUID]      = storeRef.modify(store => (store + (id -> todo), id))
       override def update(uuid: UUID, todo: Todo): F[UUID] = put(uuid, todo)
@@ -20,6 +20,7 @@ object TodoStore {
     }
 
 }
+
 trait TodoStore[F[_]] {
   def put(id: UUID, todo: Todo): F[UUID]
   def update(uuid: UUID, todo: Todo): F[UUID]

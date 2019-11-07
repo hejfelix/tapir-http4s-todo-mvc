@@ -3,12 +3,14 @@ package tapir.todomvc
 import cats.data.NonEmptyList
 import cats.effect.{ContextShift, Sync}
 import cats.implicits._
-import cats.syntax.reducible.catsSyntaxNestedReducible
-import cats.{ApplicativeError, ~>}
+import cats.mtl.{ApplicativeAsk, ApplicativeHandle, FunctorRaise}
+import cats.~>
 import org.http4s.dsl.Http4sDsl
 import org.http4s.headers.Location
 import org.http4s.{HttpRoutes, Uri}
 import tapir.server.http4s.RichHttp4sHttpEndpoint
+import cats.mtl.implicits._
+
 object Routing {
 
   def docsRoute[F[_]: Sync](dsl: Http4sDsl[F]): HttpRoutes[F] = {
@@ -26,24 +28,29 @@ object Routing {
     }
   }
 
-  def route[F[_]: ApplicativeError[*[_], String], G[_]: Sync: ContextShift](endpoints: Endpoints,
-                                                                            implementation: Implementation[F],
-                                                                            fToG: F ~> G): HttpRoutes[G] = {
+  def route[F[_]: Sync: ApplicativeHandle[*[_], String]: FunctorRaise[*[_], String]: TodoStore: IdGen: Log: ApplicativeAsk[
+    *[_],
+    TodoConfig,
+  ], G[_]: Sync: ContextShift](
+      endpoints: Endpoints,
+      fToG: F ~> G,
+  ): HttpRoutes[G] = {
+    import Implementation._
     import endpoints._
-    import implementation._
 
-    def massage[T, U](f: T => F[U]): T => G[Either[String, U]] = f.andThen(_.attempt).andThen(fToG(_))
+    def massage[T, U](f: T => F[U]): T => G[Either[String, U]] =
+      f.andThen(_.attemptHandle).andThen(fToG(_))
 
     val http4sDslG = new Http4sDsl[G] {}
 
     NonEmptyList
       .of(
-        getEndpoint.toRoutes(logic = _ => fToG(getTodo.attempt)),
-        deleteTodoEndpoint.toRoutes(logic = massage(deleteTodo)),
-        deleteEndpoint.toRoutes(logic = _ => fToG(deleteTodos.attempt)),
-        postEndpoint.toRoutes(logic = massage(postTodo)),
-        getTodoEndpoint.toRoutes(logic = massage(getTodoById)),
-        patchByIdEndpoint.toRoutes(logic = massage((patchById _).tupled)),
+        getEndpoint.toRoutes(logic = _ => fToG(getTodo[F].attemptHandle)),
+        deleteTodoEndpoint.toRoutes(logic = massage(deleteTodo[F])),
+        deleteEndpoint.toRoutes(logic = _ => fToG(deleteTodos[F].attemptHandle)),
+        postEndpoint.toRoutes(logic = massage(postTodo[F])),
+        getTodoEndpoint.toRoutes(logic = massage(getTodoById[F])),
+        patchByIdEndpoint.toRoutes(logic = massage((patchById[F] _).tupled)),
         docsRoute[G](http4sDslG),
         openApiRoute[G](openApiYaml, http4sDslG),
       )

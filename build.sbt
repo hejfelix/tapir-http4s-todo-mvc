@@ -8,7 +8,8 @@ lazy val root = project
     name := "tapir-http4s-todo-mvc",
     version := "0.1",
     scalaVersion := "2.12.8",
-    addCompilerPlugin("org.typelevel" %% "kind-projector" % "0.11.0" cross CrossVersion.full),
+    addCompilerPlugin("org.typelevel" %% "kind-projector"     % "0.11.0" cross CrossVersion.full),
+    addCompilerPlugin("com.olegpy"    %% "better-monadic-for" % "0.3.1"),
     libraryDependencies ++=
       Seq(
         "com.softwaremill.tapir" %% "tapir-core"                     % tapirVersion,
@@ -24,7 +25,7 @@ lazy val root = project
         "com.olegpy"             %% "meow-mtl-effects"               % meowVersion,
         "com.softwaremill.sttp"  %% "async-http-client-backend-cats" % "1.5.11" % Test,
         "com.softwaremill.tapir" %% "tapir-sttp-client"              % tapirVersion % Test,
-        "org.scalatest"          %% "scalatest"                      % "3.0.5" % Test
+        "org.scalatest"          %% "scalatest"                      % "3.0.5" % Test,
       ),
-    scalacOptions --= Seq("-Ywarn-value-discard")
+    scalacOptions --= Seq("-Ywarn-value-discard"),
   )
