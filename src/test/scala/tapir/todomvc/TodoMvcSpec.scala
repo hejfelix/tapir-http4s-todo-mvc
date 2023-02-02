@@ -1,7 +1,6 @@
 package tapir.todomvc
 import java.util.UUID
-
-import cats.effect._
+import cats.effect.*
 import org.http4s.HttpRoutes
 import org.http4s.server.Server
 import org.http4s.server.blaze.BlazeServerBuilder
@@ -10,12 +9,14 @@ import org.http4s.syntax.kleisli.http4sKleisliResponseSyntax
 import org.scalatest.{Matchers, Outcome}
 
 import scala.concurrent.ExecutionContext
-import scala.concurrent.duration._
-import tapir.client.sttp._
-import com.softwaremill.sttp._
+import scala.concurrent.duration.*
+import tapir.client.sttp.*
+import com.softwaremill.sttp.*
 import com.softwaremill.sttp.asynchttpclient.cats.AsyncHttpClientCatsBackend
 import tapir.Endpoint
-import tapir._
+import tapir.*
+import _root_.todomvc.Todo
+import todomvc.{Endpoints, Implementation}
 
 class TodoMvcSpec extends org.scalatest.fixture.WordSpec with Matchers {
 
