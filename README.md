@@ -4,14 +4,14 @@ This is a [Todo-Backend](https://www.todobackend.com/) implementation in Scala u
 
 # Architecture
 
-## [todomvc.Endpoints](src/main/scala/tapir/todomvc/Endpoints.scala)
+## [todomvc.Endpoints](src/main/scala/todomvc/Endpoints.scala)
 
 This class defines a declarative model of the Todo-MVC API using Tapir. Furthermore, it implements a `PlainCodec[UUID]` allowing us to decode `UUID`s directly from path parameters. These endpoints are meant to be hooked up with logic before we can materialize a server
 
 The endpoints are also transformed into `OpenAPI` models which are then merged into a single model and rendered as `.yml`.
 This `.yml` file can then be delivered with whatever underlying web library is chosen.
 
-## [todomvc.Implementation[F[_]]](src/main/scala/tapir/todomvc/Implementation.scala)
+## [todomvc.Implementation[F[_]]](src/main/scala/todomvc/Implementation.scala)
 
 This class contains all the implementations of the different API-endpoints. Furthermore, it maps the endpoints to implementations, exposing a single method: `def routes: HttpRoutes[F]`.
 These routes are the final model for building and running the server with endpoints and logic mapped together. Note that the endpoints will be matched in the order they appear in the `NonEmptyList`.
@@ -22,7 +22,7 @@ We use `combineK` to turn all the implemented routes into a single route. This i
 
 Finally, this class also exposes `/openapi.yml` as well as a `/docs` which redirects to the index of some `swagger-ui` resources (which will be provided through web jars, see [Main](src/main/scala/tapir/todomvc/Main.scala)).
 
-## [tapir.todomvc.Main](src/main/scala/tapir/todomvc/Main.scala)
+## [tapir.todomvc.Main](src/main/scala/todomvc/Main.scala)
 
 This is an `IOApp` using [`cats-effect`](https://github.com/typelevel/cats-effect) that configures and runs the server using the other classes. Currently, it simply binds to `127.0.0.1:8080`. It also exposes static resources from the `swagger-ui` webjar using `http4s`' built in support.
 
