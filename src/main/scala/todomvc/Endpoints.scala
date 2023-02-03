@@ -10,7 +10,7 @@ import sttp.tapir.swagger.bundle.SwaggerInterpreter
 
 import java.util.UUID
 
-class Endpoints(val basePath: String) {
+class Endpoints(val basePath: String):
 
   def openApiYaml[F[_]]: List[ServerEndpoint[Any, F]] =
     SwaggerInterpreter().fromEndpoints[F](
@@ -70,4 +70,5 @@ class Endpoints(val basePath: String) {
       .errorOut(stringBody)
       .description("Patch TODO item by UUID")
 
-}
+end Endpoints
+

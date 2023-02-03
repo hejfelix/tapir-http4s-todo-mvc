@@ -7,7 +7,6 @@ case class Todo(
     completed: Option[Boolean],
     url: Option[String],
     order: Option[Int],
-) {
+):
   def patch(that: Todo) =
     Todo(that.title, that.completed <+> completed, that.url <+> url, that.order <+> order)
-}
