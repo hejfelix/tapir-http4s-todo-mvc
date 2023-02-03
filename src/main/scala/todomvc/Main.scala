@@ -1,9 +1,8 @@
 package todomvc
 
-import cats.effect.{ExitCode, IO, IOApp, Ref}
-import com.comcast.ip4s.Literals.host
+import cats.effect.{IO, IOApp, Ref}
+import cats.syntax.all.*
 import com.comcast.ip4s.{host, port}
-import org.http4s.HttpRoutes
 import org.http4s.ember.server.EmberServerBuilder
 import org.http4s.server.middleware.{CORS, CORSPolicy}
 
@@ -21,9 +20,9 @@ object Main extends IOApp.Simple:
 
   override def run: IO[Unit] =
     for
-      todos <- Ref[IO].of(Map.empty[UUID, Todo])
-      implementation = Implementation[IO](port, hostName, endpoints, todos)
-      routes         = corsConfig(implementation.routes).orNotFound
+      todos          <- Ref[IO].of(Map.empty[UUID, Todo])
+      implementation <- Implementation[IO](port, hostName, endpoints, todos).pure[IO]
+      routes         <- corsConfig(implementation.routes).orNotFound.pure[IO]
       _ <- EmberServerBuilder
         .default[IO]
         .withHost(hostName)
@@ -33,4 +32,3 @@ object Main extends IOApp.Simple:
         .useForever
     yield ()
 end Main
-

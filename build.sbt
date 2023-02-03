@@ -6,7 +6,7 @@ lazy val root = project
   .settings(
     name         := "tapir-http4s-todo-mvc",
     version      := "0.1",
-    scalaVersion := "3.2.1",
+    scalaVersion := "3.3.0-RC2",
     libraryDependencies ++=
       Seq(
         "com.softwaremill.sttp.tapir" %% "tapir-core"              % tapirVersion,
@@ -18,5 +18,13 @@ lazy val root = project
         "org.http4s"                  %% "http4s-ember-server"     % http4sVersion,
         "org.slf4j"                    % "slf4j-simple"            % "1.7.36"
       ),
-    scalacOptions --= Seq("-Ywarn-value-discard")
+    scalacOptions ++= Seq(
+      "-Wunused:imports",
+      "-Wunused:locals",
+      "-Wunused:privates",
+      "-Wunused:params",
+      "-Wunused:unsafe-warn-patvars",
+      "-Wunused:linted",
+      "-Wunused:implicits"
+    )
   )

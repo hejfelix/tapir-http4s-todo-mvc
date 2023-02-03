@@ -1,19 +1,14 @@
 package todomvc
 
-import cats.data.NonEmptyList
 import cats.effect.*
 import cats.effect.std.{Console, UUIDGen}
 import cats.implicits.*
 import com.comcast.ip4s.{Hostname, Port}
 import org.http4s.HttpRoutes
-import org.http4s.dsl.Http4sDsl
-import sttp.capabilities.fs2.Fs2Streams
 import sttp.tapir.server.ServerEndpoint
-import sttp.tapir.server.ServerEndpoint.Full
 import sttp.tapir.server.http4s.Http4sServerInterpreter
 
 import java.util.UUID
-import scala.collection.mutable
 
 class Implementation[F[_]: Async: Console: UUIDGen](
     port: Port,
@@ -25,7 +20,6 @@ class Implementation[F[_]: Async: Console: UUIDGen](
   private val interpreter = Http4sServerInterpreter[F]()
 
   def routes: HttpRoutes[F] =
-    import sttp.tapir.*
     val value: List[ServerEndpoint[Any, F]] =
       List(
         endpoints.getEndpoint.serverLogic(_ => getTodo),
@@ -64,10 +58,10 @@ class Implementation[F[_]: Async: Console: UUIDGen](
 
   private def patchById(uuid: UUID, todo: Todo): F[Either[String, Todo]] =
     for
-      _        <- Console[F].println(s"Patching $uuid")
-      todosMap <- todos.get
-      maybePatched = todosMap.get(uuid).map(_.patch(todo))
-      _ <- maybePatched.traverse(patched => todos.update(_.updated(uuid, patched)))
+      _            <- Console[F].println(s"Patching $uuid")
+      todosMap     <- todos.get
+      maybePatched <- todosMap.get(uuid).map(_.patch(todo)).pure
+      _            <- maybePatched.traverse(patched => todos.update(_.updated(uuid, patched)))
     yield maybePatched.toRight(s"$uuid not found")
 
 end Implementation

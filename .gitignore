@@ -2,3 +2,5 @@
 *.log
 target/
 .idea/
+
+.bsp/sbt.json

@@ -2,7 +2,6 @@ package todomvc
 
 import io.circe.generic.auto.*
 import sttp.tapir.*
-import sttp.tapir.EndpointIO.Info
 import sttp.tapir.generic.auto.*
 import sttp.tapir.json.circe.*
 import sttp.tapir.server.ServerEndpoint
